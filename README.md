@@ -144,10 +144,10 @@ scrape_configs:
 * 尚未完成，可能使用 [ metalmatze / alertmanager-bot ](https://github.com/metalmatze/alertmanager-bot)
 * 預期成果：一個 Telegram Bot，出事時自動傳訊息給人
     ![](https://i.imgur.com/bWHSir9.png)
-
+## 雙 MASTER 的 Keepalived 搭配 HAProxy & MySql
 * Tech Stack
     * 容錯移轉 keepalived
-    * 前端 HAproxy
+    * 前端 HAProxy
     * 後端 MySQL
 
 這次透過 HAproxy 搭配 MySQL 的雙主達成高度可用性(On DigitalOcean)
