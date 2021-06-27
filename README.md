@@ -145,6 +145,252 @@ scrape_configs:
 * 預期成果：一個 Telegram Bot，出事時自動傳訊息給人
     ![](https://i.imgur.com/bWHSir9.png)
 
+* Tech Stack
+    * 容錯移轉 keepalived
+    * 前端 HAproxy
+    * 後端 MySQL
+
+這次透過 HAproxy 搭配 MySQL 的雙主達成高度可用性(On DigitalOcean)
+## 實作
+![](https://i.imgur.com/cb3jX2N.png)
+> 圖片來源: [Best Practices for Floating IP Addresses  |  Compute Engine 說明文件](https://cloud.google.com/solutions/best-practices-floating-ip-addresses#example_use_case_for_migration), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0)
+
+這次還是以方便為主，所以只有後端只會開兩台。
+[創建虛擬機請參閱](https://hackmd.io/pLrUczzjQ_CUhcnPX2Xwhw?view#DEMO)
+
+* 首先進入後端兩台虛擬機
+    * 安裝 MySQL Server
+    ```=shell
+        sudo apt install mysql-server
+    ```
+    * 修改設定檔
+        * First
+        ```=shell
+        # 在 [mysqld] 下方新增
+        server-id       = 1
+        log_bin         = /var/log/mysql/mysql1-bin.log
+        binlog_do_db    = hadb
+        # 並更換 bind-address 成你的 local ip
+        bind-address    = <local-IP>
+        ```
+        * Second
+        ```=shell
+        # 在 [mysqld] 下方新增
+        server-id       = 2
+        log_bin         = /var/log/mysql/mysql2-bin.log
+        binlog_do_db    = hadb # 決定要複製的資料庫
+        # 並更換 bind-address 成你的 local ip
+        bind-address    = <local-IP>
+        ```
+    * 建立資料庫
+    ```=shell
+    sudo mysql # or use mysql -u <username> -p 
+    ```
+    ```=mysql
+    CREATE DATABASE hadb;
+    ```
+    * 建立擁有複製權限的使用者
+        * 兩台都要，記得 IP 要用對方的
+        * First
+        ```=mysql
+        GRANT REPLICATION SLAVE,REPLICATION CLIENT ON *.* TO 'master'@'<Second local-IP>' IDENTIFIED BY '<YOUR_PASSWORD>';
+        FLUSH PRIVILEGES;
+        exit;
+        ```
+        * Second
+        ```=mysql
+        GRANT REPLICATION SLAVE,REPLICATION CLIENT ON *.* TO 'master'@'<First local-IP>' IDENTIFIED BY '<YOUR_PASSWORD>';
+        FLUSH PRIVILEGES;
+        exit;
+        ```
+    * 重啟 Mysql Server
+    ```=shell
+    sudo service mysql restart
+    ```
+    * 確認是否設定成功
+    ```=shell
+    sudo mysql
+    ```
+    * 並記錄 File Size 的檔名以及大小
+    ```=mysql
+    SHOW MASTER LOGS;
+    ```
+    ![](https://i.imgur.com/9bufDrz.png)
+    ![](https://i.imgur.com/z1wo2zC.png)
+
+    * 接下來讓伺服器可以讀取另一台伺服器的資料
+        * First
+        ```=shell
+        CHANGE MASTER TO MASTER_HOST='<Second local-IP>',MASTER_USER='master',MASTER_PASSWORD='123456',MASTER_LOG_FILE='mysql2-bin.000001',MASTER_LOG_POS=154;
+        START SLAVE;
+        ```
+        * Secord
+        ```=shell
+        CHANGE MASTER TO MASTER_HOST='<First local-IP>',MASTER_USER='master',MASTER_PASSWORD='123456',MASTER_LOG_FILE='mysql1-bin.000001',MASTER_LOG_POS=154;
+        START SLAVE;
+        ```
+    * 測試
+        * First
+        ```=mysql
+        USE hadb;
+        CREATE TABLE example_table (example_column varchar(30));
+        INSERT INTO example_table VALUES('This is the first row'),('This is the second row'),('This is the third row');
+        ```
+        * Second
+        ```=mysql
+        USE hadb;
+        SELECT * FROM example_table;
+        ```
+    * 建立一個可以遠端登入的帳號 (ex:10.104.0.%) % 可以讓兩台都能登入
+    ```=mysql
+    GRANT ALL ON *.* TO 'user'@'<local-IP>' IDENTIFIED BY '123456';
+    FLUSH PRIVILEGES;
+    ```
+    :::info
+    要是設定上不成功的話可以使用``STOP SLAVE;``先停止複製之後再重新讀取``SHOW MASTER LOGS;``取最新的 Log_name 以及 File_size 來重新設定
+    :::
+* 再來是兩台前端
+    * 先安裝 MySQL Client 以及 HAProxy
+    ```=shell
+    sudo apt install mysql-client haproxy
+    ```
+    * 設定 HAProxy
+    ```=shell
+    sudo vim /etc/haproxy/haproxy.cfg
+    ```
+    ```=shell
+    defaults
+        mode tcp # 要修改 defaults 底下的 mode
+    listen stats
+        mode http
+        bind :6677                             # 選擇不常用的 port
+        stats enable
+        stats uri       /haproxyadmin?stats    # 設定監控頁面
+        stats auth      admin:admin            # 帳號密碼
+        stats admin if TRUE                    # 開啟監控頁面
+
+    frontend main                              
+            bind *:3306                        # 為了方便選擇設定跟 mysql 一樣的 port
+            default_backend mysql              # 轉送至哪裡
+
+    backend mysql
+            balance leastconn
+            server m1 10.104.0.7:3306 check port 3306
+            server m2 10.104.0.6:3306 check port 3306
+    ```
+    * 測試
+    ```=shell
+    mysql -uuser -p123456 -h<first mysql server ip>
+    mysql -uuser -p123456 -h<second mysql server ip>
+    ```
+    * Keepalived 
+        ```=shell
+        sudo apt install keepalived
+        sudo vim /etc/keepalived/keepalived.conf 
+        ```
+        * first
+        ```=shell
+        vrrp_script chk_haproxy {
+            script "/etc/keepalived/chk.sh"
+            interval 2
+        }
+        vrrp_instance VI_1 {
+            state BACKUP
+            nopreempt
+            interface eth1 # 需要確認你自己的 local ethernet ip 位於哪張網卡
+            virtual_router_id 50
+            priority 100
+            advert_int 1
+            unicast_src_ip <first haproxy ip>
+            unicast_peer {
+                    <second haproxy ip>
+                }
+            authentication {
+                auth_type PASS
+                auth_pass 5678
+            }
+            track_script {
+                chk_haproxy
+            }
+                notify_backup "/etc/init.d/haproxy restart"
+                notify_fault "/etc/init.d/haproxy stop"
+                notify_master /etc/keepalived/master.sh # 這邊這份 script 是來自於 DigitalOcean 用於在成為 MASTER 後，去跟 DigitalOcean 要求綁定 Float IP，也可以自己設定 Virtual IP。
+        }
+        ```
+        * second
+        ```=shell
+        vrrp_script chk_haproxy {
+            script "/etc/keepalived/chk.sh"
+            interval 2
+        }
+        vrrp_instance VI_1 {
+            state BACKUP
+            nopreempt
+            interface eth1 
+            virtual_router_id 50
+            priority 99
+            advert_int 1
+            unicast_src_ip <second haproxy ip>
+            unicast_peer {
+                    <first haproxy ip>
+                }
+            authentication {
+                auth_type PASS
+                auth_pass 5678
+            }
+            track_script {
+                chk_haproxy
+            }
+                notify_backup "/etc/init.d/haproxy restart"
+                notify_fault "/etc/init.d/haproxy stop"
+                notify_master /etc/keepalived/master.sh 
+        }
+        ```
+        * 檢查 HAProxy 是否存活的腳本
+        ```=shell
+        sudo vim /etc/keepalived/chk.sh
+        ```
+        ```=shell
+        #!/bin/bash
+        #
+        if [ $(ps -C haproxy --no-header | wc -l) -eq 0 ]; then
+               /etc/init.d/keepalived stop
+        fi
+        ```
+        * 當成為 MASTER 之後執行的動作
+        ```=shell
+        sudo vim /etc/keepalived/master.sh
+        ```
+        ```=shell
+        #!/bin/bash
+        export DO_TOKEN=''
+        IP=''
+        ID=$(curl -s http://169.254.169.254/metadata/v1/id)
+        HAS_FLOATING_IP=$(curl -s http://169.254.169.254/metadata/v1/floating_ip/ipv4/active)
+
+        if [ $HAS_FLOATING_IP = "false" ]; then
+            n=0
+            while [ $n -lt 10 ]
+            do
+                python /usr/local/bin/assign-ip $IP $ID && break
+                n=$((n+1))
+                sleep 3
+            done
+        fi
+        ```
+        * 增加 master.sh 可執行的權限
+        ```=shell
+        sudo chmod +x /etc/keepalived/master.sh
+        ```
+        * 下載 DigitalOcean 提供的轉移 Float IP 的腳本
+        ```=shell
+        cd /usr/local/bin
+        sudo curl -LO http://do.co/assign-ip
+        ```
+        :::info
+        [Source](https://www.digitalocean.com/community/tutorials/how-to-set-up-highly-available-haproxy-servers-with-keepalived-and-floating-ips-on-ubuntu-14-04#create-the-floating-ip-transition-scripts)
+        :::
+
 ## Reference Link
 * 跨雲端的 load balance
     * [Lien, M. (2018). Tellus One - 基於地理空間，為即時應用軟體設計的全球自組織伺服器 P2P 負載平衡系統 (Master's thesis).](http://ir.ncnu.edu.tw:8080/handle/310010000/11332)
