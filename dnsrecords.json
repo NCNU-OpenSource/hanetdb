@@ -1,0 +1,239 @@
+{
+    "ResourceRecordSets": [
+        {
+            "Name": "jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 10800,
+            "ResourceRecords": [
+                {
+                    "Value": "217.70.184.38"
+                }
+            ]
+        },
+        {
+            "Name": "jiazhengdev.tw.",
+            "Type": "NS",
+            "TTL": 172800,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-1486.awsdns-57.org."
+                },
+                {
+                    "Value": "ns-1693.awsdns-19.co.uk."
+                },
+                {
+                    "Value": "ns-997.awsdns-60.net."
+                },
+                {
+                    "Value": "ns-273.awsdns-34.com."
+                }
+            ]
+        },
+        {
+            "Name": "jiazhengdev.tw.",
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-1486.awsdns-57.org. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+                }
+            ]
+        },
+        {
+            "Name": "aws-load-balancer.jiazhengdev.tw.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z24FKFUX50B4VW",
+                "DNSName": "lsalb-d596176d69ccaeb9.elb.us-west-1.amazonaws.com.",
+                "EvaluateTargetHealth": true
+            }
+        },
+        {
+            "Name": "aws-us1.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "54.219.229.101"
+                }
+            ]
+        },
+        {
+            "Name": "aws-us2.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "54.177.212.240"
+                }
+            ]
+        },
+        {
+            "Name": "do-float-ip.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "139.59.220.171"
+                }
+            ]
+        },
+        {
+            "Name": "do-keepalived-backup.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "165.22.96.109"
+                }
+            ]
+        },
+        {
+            "Name": "do-keepalived-master.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "159.65.137.30"
+                }
+            ]
+        },
+        {
+            "Name": "do-nginx-primary.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "165.22.96.53"
+                }
+            ]
+        },
+        {
+            "Name": "do-nginx-secondary.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "134.209.105.124"
+                }
+            ]
+        },
+        {
+            "Name": "do-sgp.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "165.22.96.53"
+                }
+            ]
+        },
+        {
+            "Name": "failover-sgp.jiazhengdev.tw.",
+            "Type": "A",
+            "SetIdentifier": "failover-sgp-secondary",
+            "Failover": "SECONDARY",
+            "AliasTarget": {
+                "HostedZoneId": "Z24FKFUX50B4VW",
+                "DNSName": "lsalb-d596176d69ccaeb9.elb.us-west-1.amazonaws.com.",
+                "EvaluateTargetHealth": true
+            }
+        },
+        {
+            "Name": "failover-sgp.jiazhengdev.tw.",
+            "Type": "A",
+            "SetIdentifier": "failover-sqp",
+            "Failover": "PRIMARY",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "139.59.220.171"
+                }
+            ],
+            "HealthCheckId": "7d4673fa-0afe-4883-a4b2-f0295a759e01"
+        },
+        {
+            "Name": "failover-us.jiazhengdev.tw.",
+            "Type": "A",
+            "SetIdentifier": "failover-us-primary",
+            "Failover": "PRIMARY",
+            "AliasTarget": {
+                "HostedZoneId": "Z24FKFUX50B4VW",
+                "DNSName": "lsalb-d596176d69ccaeb9.elb.us-west-1.amazonaws.com.",
+                "EvaluateTargetHealth": true
+            }
+        },
+        {
+            "Name": "failover-us.jiazhengdev.tw.",
+            "Type": "A",
+            "SetIdentifier": "failover-us-secondary",
+            "Failover": "SECONDARY",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "139.59.220.171"
+                }
+            ]
+        },
+        {
+            "Name": "lsa.jiazhengdev.tw.",
+            "Type": "A",
+            "SetIdentifier": "lsa-asia",
+            "GeoLocation": {
+                "ContinentCode": "AS"
+            },
+            "AliasTarget": {
+                "HostedZoneId": "Z0217922AAF5FHCRVIVK",
+                "DNSName": "failover-sgp.jiazhengdev.tw.",
+                "EvaluateTargetHealth": true
+            },
+            "HealthCheckId": "d887391d-32db-470b-a158-ec5d87806140"
+        },
+        {
+            "Name": "lsa.jiazhengdev.tw.",
+            "Type": "A",
+            "SetIdentifier": "lsa-geo-us",
+            "GeoLocation": {
+                "CountryCode": "*"
+            },
+            "AliasTarget": {
+                "HostedZoneId": "Z0217922AAF5FHCRVIVK",
+                "DNSName": "failover-us.jiazhengdev.tw.",
+                "EvaluateTargetHealth": true
+            }
+        },
+        {
+            "Name": "monitor.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "165.22.101.238"
+                }
+            ]
+        },
+        {
+            "Name": "roundrobin.jiazhengdev.tw.",
+            "Type": "A",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "165.22.96.53"
+                },
+                {
+                    "Value": "163.22.17.162"
+                }
+            ]
+        },
+        {
+            "Name": "www.jiazhengdev.tw.",
+            "Type": "CNAME",
+            "TTL": 10800,
+            "ResourceRecords": [
+                {
+                    "Value": "webredir.vip.gandi.net."
+                }
+            ]
+        }
+    ]
+}
