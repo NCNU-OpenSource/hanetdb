@@ -1,9 +1,10 @@
 # multicloud-loadbalancer
-跨雲端的 Load balancer
+跨雲端的 Load balancing + 雙 MASTER 的 MySQL 搭配 HAProxy & Keepalived
 
-## 動機
-想試試看不同 cloud 之間的 Load balance ，例如 GCP AWS DO 都開
-像我們上次 demo 作法只能都在 DO 內
+## 實作跨雲端的 Load balance
+### 動機
+想試試看不同 cloud 之間的 Load balance ，例如 GCP AWS DO 都開。  
+像我們上次 demo 作法只能都在 DO 內。
 * 可能技術
     * Dynamic DNS
         * 每有一次 IP 更動，就改變 DNS 上的紀錄
@@ -23,11 +24,9 @@
         * 成本較高，需要擁有 ASN、有能力廣播 BGP
             * PS: 這場 SITCON 2021 議程 - [網路維運，在台灣怎麼玩？打造全台最大家用網路！ by 海豹](https://sitcon.org/2021/agenda/3fe74d93-2ab5-4c42-8b49-b5b92973f4aa)，講者有去申請到他自己的 ASN，我很期待聽到這場演講
             * 或用 [dn42](https://dn42.eu/Home) 這網路實驗平台來做 BGP 實驗
-
-## 實作跨雲端的 Load balance
-* 架構圖
-    ![](https://i.imgur.com/45uPz3j.png)
-    > [設計原始檔](https://gist.github.com/jiazheng0609/d4d0f6c775a87d7e38cc3d47d5ef0a47)，[網頁版分享連結](https://viewer.diagrams.net/?highlight=0000ff&edit=_blank&layers=1&nav=1&title=LSAproject.drawio#Uhttps%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D114Y5djarxGvDSCLjlKrGBQAyl1xb753j%26export%3Ddownload)，用 app.diagrams.net 繪製，DigitalOcean Icon 取自[這裡](https://www.digitalocean.com/brand/)和[這裡](https://do.co/diagram-kit)
+### 架構圖
+ ![](https://i.imgur.com/45uPz3j.png)
+ > [設計原始檔](/LSAproject.drawio)，[網頁版分享連結](https://viewer.diagrams.net/?highlight=0000ff&edit=_blank&layers=1&nav=1&title=LSAproject.drawio#Uhttps%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D114Y5djarxGvDSCLjlKrGBQAyl1xb753j%26export%3Ddownload)，用 app.diagrams.net 繪製，DigitalOcean Icon 取自[這裡](https://www.digitalocean.com/brand/)和[這裡](https://do.co/diagram-kit)
 * 利用 DNS，根據地理位置提供不同的路由政策
 * 預備資源
     * 自己的網域名稱，這裡用從 Gandi 註冊的 `jiazhengdev.tw`
@@ -50,13 +49,13 @@
 5. 在 Route 53 設定 DNS 規則，參考[官方教學](https://docs.aws.amazon.com/zh_tw/Route53/latest/DeveloperGuide/dns-failover-types.html)
     * 示意圖
     ![](https://i.imgur.com/JBxfoG2.png)
-    > [設計原始檔](https://gist.github.com/jiazheng0609/d4d0f6c775a87d7e38cc3d47d5ef0a47)，用 app.diagrams.net 繪製
+    > [設計原始檔](/LSArouter53.drawio)，用 app.diagrams.net 繪製
     * 「容錯移轉->主要」路由裡要設定「運作狀態檢查」的對象，要去另外一個界面新增規則
         * 規則截圖
         ![](https://i.imgur.com/9mmCdCl.png)
         * 但若要監測的是 AWS 內部資源（例如我這裡的 AWS Network Load Balancer）的別名，就只要把「評估目標運作狀態」打開，「運作狀態檢查」留空，他就會自動去偵測了
     * 為了方便辨識，我也把所有虛擬機 IP 用 A 紀錄起來了
-    * [所有 DNS 紀錄列表](https://i.imgur.com/RCUgWE8.png)
+    * 所有 DNS 紀錄列表 [json 檔](/dnsrecords.json)、[畫面截圖](https://i.imgur.com/RCUgWE8.png)
     
 
 
@@ -64,7 +63,7 @@
 * 以下僅供系統管理員人工判斷，不直接參與以上機器之自動化決策
 ### Prometheus + Grafana
 * 目的：自動定期監測，並整合、視覺化
-* [成品公開展示頁面](http://monitor.jiazhengdev.tw:3000/d/6LB6zeR7z/watch-lsa?orgId=1&refresh=5s)
+* [~~成品公開展示頁面~~](http://monitor.jiazhengdev.tw:3000/d/6LB6zeR7z/watch-lsa?orgId=1&refresh=5s) （已於 2021/06/27 停止服務）
     ![](https://i.imgur.com/5jUBteG.png)
 * 找公正第三方來定期健康檢查
     * 這裡用的是額外的機器，與上面有開的機器不重複
@@ -74,7 +73,7 @@
     * [First steps | Prometheus](https://prometheus.io/docs/introduction/first_steps/) 負責統整來自 exporter 們的資料，再發給 Grafana
     * [Blackbox prober exporter](https://github.com/prometheus/blackbox_exporter) 用 HTTP 請求做健康檢查的工具，再提供資料給 Prometheus
     * [Download Grafana | Grafana Labs](https://grafana.com/grafana/download) 讓 Prometheus 的資料漂漂亮亮的圖形化呈現
-* Prometheus 完整設定檔
+* Prometheus 完整設定檔 - [prometheus.yml](/prometheus.yml)
 ```yaml
 # my global config
 global:
@@ -144,19 +143,21 @@ scrape_configs:
 * 尚未完成，可能使用 [ metalmatze / alertmanager-bot ](https://github.com/metalmatze/alertmanager-bot)
 * 預期成果：一個 Telegram Bot，出事時自動傳訊息給人
     ![](https://i.imgur.com/bWHSir9.png)
-## 雙 MASTER 的 Keepalived 搭配 HAProxy & MySql
+    
+
+## 雙 MASTER 的 MySQL 搭配 HAProxy & Keepalived
 * Tech Stack
     * 容錯移轉 keepalived
     * 前端 HAProxy
     * 後端 MySQL
 
-這次透過 HAproxy 搭配 MySQL 的雙主達成高度可用性(On DigitalOcean)
+這次透過 HAproxy 搭配 MySQL 的雙主達成高度可用性 (On DigitalOcean)
 ## 實作
 ![](https://i.imgur.com/cb3jX2N.png)
 > 圖片來源: [Best Practices for Floating IP Addresses  |  Compute Engine 說明文件](https://cloud.google.com/solutions/best-practices-floating-ip-addresses#example_use_case_for_migration), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0)
 
 這次還是以方便為主，所以只有後端只會開兩台。
-[創建虛擬機請參閱](https://hackmd.io/pLrUczzjQ_CUhcnPX2Xwhw?view#DEMO)
+[建立虛擬機請參閱](https://hackmd.io/pLrUczzjQ_CUhcnPX2Xwhw?view#DEMO)
 
 * 首先進入後端兩台虛擬機
     * 安裝 MySQL Server
@@ -203,7 +204,7 @@ scrape_configs:
         FLUSH PRIVILEGES;
         exit;
         ```
-    * 重啟 Mysql Server
+    * 重啟 MySQL Server
     ```=shell
     sudo service mysql restart
     ```
@@ -387,9 +388,6 @@ scrape_configs:
         cd /usr/local/bin
         sudo curl -LO http://do.co/assign-ip
         ```
-        :::info
-        [Source](https://www.digitalocean.com/community/tutorials/how-to-set-up-highly-available-haproxy-servers-with-keepalived-and-floating-ips-on-ubuntu-14-04#create-the-floating-ip-transition-scripts)
-        :::
 
 ## Reference Link
 * 跨雲端的 load balance
@@ -400,3 +398,5 @@ scrape_configs:
     * [Anycast DNS by Vincent Bernat](https://vincent.bernat.ch/en/blog/2011-dns-anycast)
     * [TW DNS ANYCAST by TWNIC 許乃文](https://www.hcrc.edu.tw/media/education/DNS_0.pdf) 解釋 anycast 的中文簡報
     * https://grafana.com/blog/2020/02/25/step-by-step-guide-to-setting-up-prometheus-alertmanager-with-slack-pagerduty-and-gmail/
+ * 雙 MASTER 的 Keepalived 搭配 HAProxy & MySQL
+    * [How To Set Up Highly Available HAProxy Servers with Keepalived and Floating IPs on Ubuntu 14.04 | DigitalOcean](https://www.digitalocean.com/community/tutorials/how-to-set-up-highly-available-haproxy-servers-with-keepalived-and-floating-ips-on-ubuntu-14-04#create-the-floating-ip-transition-scripts)
