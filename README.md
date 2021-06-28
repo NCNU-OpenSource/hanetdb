@@ -1,5 +1,5 @@
 # hanetdb
-High Availability Network and Database
+High Availability Network and Database  
 跨雲端的 Load balancing + 雙 MASTER 的 MySQL 搭配 HAProxy & Keepalived
 
 
