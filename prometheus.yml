@@ -58,9 +58,3 @@ scrape_configs:
       - target_label: __address__
         replacement: 127.0.0.1:9115  # The blackbox exporter's real hostname:port.
 
-
-remote_write:
-      - url: https://prometheus-blocks-prod-us-central1.grafana.net/api/prom/push
-        basic_auth:
-          username: 146245
-          password: eyJrIjoiYjUxN2FkMzRkYzM0NGVhNzJlZTUwZmJkODVjMmNkMzc0NGZmMDU2YyIsIm4iOiJqaWF6aGVuZyIsImlkIjo1MTQyMjF9
