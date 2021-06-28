@@ -1,5 +1,7 @@
-# multicloud-loadbalancer
+# hanetdb
+High Availability Network and Database
 跨雲端的 Load balancing + 雙 MASTER 的 MySQL 搭配 HAProxy & Keepalived
+
 
 ## 實作跨雲端的 Load balance
 ### 動機
