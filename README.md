@@ -154,7 +154,7 @@ scrape_configs:
     * 後端 MySQL
 
 這次透過 HAproxy 搭配 MySQL 的雙主達成高度可用性 (On DigitalOcean)
-## 實作
+### 實作
 ![](https://i.imgur.com/cb3jX2N.png)
 > 圖片來源: [Best Practices for Floating IP Addresses  |  Compute Engine 說明文件](https://cloud.google.com/solutions/best-practices-floating-ip-addresses#example_use_case_for_migration), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0)
 
