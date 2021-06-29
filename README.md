@@ -168,6 +168,9 @@ scrape_configs:
     ```
     * 修改設定檔
         * First
+        :::waring
+        在測試過程中曾經因為語句的上下問題導致測試失敗，所以以下的三行建議直接新增在 [mysqld] 的下一行
+        :::
         ```=shell
         # 在 [mysqld] 下方新增
         server-id       = 1
