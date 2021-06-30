@@ -393,6 +393,9 @@ scrape_configs:
         cd /usr/local/bin
         sudo curl -LO http://do.co/assign-ip
         ```
+## 工作分配
+* 沈家正：跨雲端的 Load Balancing 資料整理及實作
+
 
 ## Reference Link
 * 跨雲端的 load balance
