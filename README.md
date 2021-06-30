@@ -168,9 +168,9 @@ scrape_configs:
     ```
     * 修改設定檔
         * First
-        :::waring
-        在測試過程中曾經因為語句的上下問題導致測試失敗，所以以下的三行建議直接新增在 [mysqld] 的下一行
-        :::
+        
+            * 在測試過程中曾經因為語句的上下問題導致測試失敗，所以以下的三行建議直接新增在 [mysqld] 的下一行
+        
         ```=shell
         # 在 [mysqld] 下方新增
         server-id       = 1
@@ -252,9 +252,9 @@ scrape_configs:
     GRANT ALL ON *.* TO 'user'@'<local-IP>' IDENTIFIED BY '123456';
     FLUSH PRIVILEGES;
     ```
-    :::info
-    要是設定上不成功的話可以使用``STOP SLAVE;``先停止複製之後再重新讀取``SHOW MASTER LOGS;``取最新的 Log_name 以及 File_size 來重新設定
-    :::
+    
+    * 要是設定上不成功的話可以使用``STOP SLAVE;``先停止複製之後再重新讀取``SHOW MASTER LOGS;``取最新的 Log_name 以及 File_size 來重新設定
+    
 * 再來是兩台前端
     * 先安裝 MySQL Client 以及 HAProxy
     ```=shell
@@ -395,7 +395,7 @@ scrape_configs:
         ```
 ## 工作分配
 * 沈家正：跨雲端的 Load Balancing 資料整理及實作
-
+* 王為棟：雙 MASTER 的 MySQL 搭配 HAProxy & Keepalived 資料整理及實作
 
 ## Reference Link
 * 跨雲端的 load balance
